@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Teleprompter — Mesa de Controle</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="logo">TP</div>
+  <div class="brand"><b>Teleprompter Pro</b><span>Mesa de controle • Sala <span id="roomName">PALCO-1</span></span></div>
+  <div class="spacer"></div>
+  <span class="status"><i class="dot off" id="dot"></i><span id="connTxt">tela do palestrante fechada</span></span>
+  <button class="primary" id="openPrompter">Abrir tela do palestrante</button>
+</header>
+
+<main class="wrap">
+  <!-- COLUNA ESQUERDA -->
+  <section class="col">
+    <div class="card">
+      <h2>Prévia do que o palestrante vê</h2>
+      <div class="preview"><iframe id="pv" src="prompter.html"></iframe></div>
+      <div class="row" style="margin-top:14px">
+        <button class="accent" id="play" style="flex:1">▶ Iniciar rolagem</button>
+        <button id="restart">⟲ Voltar ao topo</button>
+        <button id="back10">−10s</button>
+        <button id="fwd10">+10s</button>
+      </div>
+      <div style="margin-top:14px">
+        <label>Velocidade da rolagem — <span id="spdVal">60</span> px/s</label>
+        <input type="range" id="speed" min="10" max="220" step="5" value="60" style="padding:0">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Cronômetro</h2>
+      <div class="row">
+        <div class="clock bigclock" id="clock">15:00</div>
+        <div class="spacer"></div>
+        <div class="seg" id="modeSeg">
+          <button data-mode="down" class="on">Regressivo</button>
+          <button data-mode="up">Progressivo</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="accent" id="tPlay" style="flex:1">▶ Iniciar</button>
+        <button id="tReset">Zerar</button>
+        <button id="tMinus">−1 min</button>
+        <button id="tPlus">+1 min</button>
+      </div>
+      <div class="grid2" style="margin-top:14px">
+        <div><label>Duração (mm:ss)</label><input id="dur" value="15:00"></div>
+        <div><label>Alerta amarelo faltando (s)</label><input id="warn" type="number" value="120"></div>
+      </div>
+      <div class="chips" style="margin-top:12px">
+        <button data-min="5">5m</button><button data-min="10">10m</button>
+        <button data-min="15">15m</button><button data-min="20">20m</button>
+        <button data-min="30">30m</button><button data-min="45">45m</button>
+        <button data-min="60">60m</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Roteiro</h2>
+      <textarea id="script" spellcheck="false"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button id="loadFile">Importar .txt</button>
+        <input type="file" id="file" accept=".txt,.md" hidden>
+        <span class="muted" id="stats"></span>
+      </div>
+      <div class="grid2" style="margin-top:12px">
+        <div><label>Título</label><input id="title"></div>
+        <div><label>Palestrante</label><input id="speakerName"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COLUNA DIREITA -->
+  <section class="col">
+    <div class="card">
+      <h2>O que aparece na tela</h2>
+      <div class="seg" id="layoutSeg">
+        <button data-layout="both" class="on">Roteiro + cronômetro</button>
+        <button data-layout="script">Somente roteiro</button>
+        <button data-layout="timer">Somente cronômetro</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Orientação do texto</h2>
+      <p class="muted" style="margin-top:-6px">Monitor virado para o palestrante: tudo desligado. Vidro/beam-splitter na lente: ligue o espelhamento horizontal. Prompter com espelho acima da lente: ligue o vertical.</p>
+      <div class="row">
+        <button id="mirrorH" style="flex:1">⇄ Espelhar horizontal</button>
+        <button id="mirrorV" style="flex:1">⇅ Espelhar vertical</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button id="mirrorReset" class="ghost">Normal (monitor direto)</button>
+        <button id="guideBtn" class="on">Linha guia</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Texto</h2>
+      <label>Tamanho — <span id="fsVal">64</span> px</label>
+      <input type="range" id="fs" min="24" max="200" step="2" value="64" style="padding:0">
+      <label style="margin-top:14px">Espaçamento entre linhas — <span id="lhVal">1.45</span></label>
+      <input type="range" id="lh" min="1" max="2.4" step="0.05" value="1.45" style="padding:0">
+      <label style="margin-top:14px">Alinhamento</label>
+      <div class="seg" id="alignSeg">
+        <button data-align="left" class="on">Esquerda</button>
+        <button data-align="center">Centro</button>
+        <button data-align="right">Direita</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Mensagem ao vivo</h2>
+      <textarea id="msg" rows="2" placeholder="Ex: Conclua em 1 minuto..."></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="accent" id="msgShow" style="flex:1">Mostrar</button>
+        <button id="msgHide" style="flex:1">Ocultar</button>
+      </div>
+      <div class="chips" style="margin-top:10px">
+        <button class="q">Conclua em 1 minuto</button>
+        <button class="q">Fale mais devagar</button>
+        <button class="q">Aproxime-se do microfone</button>
+        <button class="q">Tempo esgotado</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Celular / TV / segundo monitor</h2>
+      <p class="muted" style="margin-top:-6px">Abra este link na tela do palestrante. No mesmo navegador (outra janela, monitor ou projeção) a sincronia é automática.</p>
+      <div class="linkbox"><input id="link" readonly><button id="copy">Copiar</button></div>
+      <div class="grid2" style="margin-top:12px">
+        <div><label>Sala</label><input id="room" value="PALCO-1"></div>
+        <div style="display:flex;align-items:flex-end"><button id="applyRoom" style="width:100%">Trocar sala</button></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="sync.js"></script>
+<script>
+const qs = s => document.querySelector(s);
+const qsa = s => [...document.querySelectorAll(s)];
+let room = new URL(location.href).searchParams.get('sala') || 'PALCO-1';
+let sync = new Sync(room);
+let prompterWin = null;
+
+/* ---------- helpers ---------- */
+const parseDur = v => {
+  const p = String(v).split(':').map(n => parseInt(n, 10) || 0);
+  return p.length >= 2 ? p[0] * 60 + p[1] : p[0] * 60;
+};
+const fmtDur = sec => `${String(Math.floor(sec / 60)).padStart(2,'0')}:${String(Math.floor(sec % 60)).padStart(2,'0')}`;
+const S = () => sync.state;
+
+/* ---------- roteiro e textos ---------- */
+qs('#script').addEventListener('input', e => sync.set({ script: e.target.value }));
+qs('#title').addEventListener('input', e => sync.set({ title: e.target.value }));
+qs('#speakerName').addEventListener('input', e => sync.set({ speaker: e.target.value }));
+qs('#loadFile').onclick = () => qs('#file').click();
+qs('#file').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => { qs('#script').value = r.result; sync.set({ script: r.result }); };
+  r.readAsText(f);
+};
+
+/* ---------- rolagem ---------- */
+qs('#play').onclick = () => {
+  const s = S();
+  s.running ? sync.set({ running: false, offset: Calc.scrollOffset(s) })
+            : sync.set({ running: true, startedAt: Date.now() });
+};
+qs('#restart').onclick = () => sync.set({ offset: 0, startedAt: Date.now() });
+const nudge = secs => {
+  const s = S();
+  sync.set({ offset: Math.max(0, Calc.scrollOffset(s) + secs * s.speed), startedAt: Date.now() });
+};
+qs('#back10').onclick = () => nudge(-10);
+qs('#fwd10').onclick  = () => nudge(10);
+qs('#speed').oninput = e => {
+  const s = S(), v = +e.target.value;
+  sync.set({ speed: v, offset: Calc.scrollOffset(s), startedAt: Date.now() });
+};
+
+/* ---------- cronômetro ---------- */
+qs('#tPlay').onclick = () => {
+  const s = S();
+  s.tRunning ? sync.set({ tRunning: false, tElapsed: Calc.elapsed(s) })
+             : sync.set({ tRunning: true, tStartedAt: Date.now() });
+};
+qs('#tReset').onclick = () => sync.set({ tRunning: false, tElapsed: 0, tStartedAt: 0 });
+qs('#tPlus').onclick  = () => sync.set({ durationSec: S().durationSec + 60 });
+qs('#tMinus').onclick = () => sync.set({ durationSec: Math.max(0, S().durationSec - 60) });
+qs('#dur').onchange   = e => sync.set({ durationSec: parseDur(e.target.value) });
+qs('#warn').onchange  = e => sync.set({ warnSec: Math.max(0, +e.target.value || 0) });
+qsa('.chips [data-min]').forEach(b => b.onclick = () =>
+  sync.set({ durationSec: +b.dataset.min * 60, tElapsed: 0, tRunning: false }));
+qsa('#modeSeg button').forEach(b => b.onclick = () => sync.set({ mode: b.dataset.mode }));
+
+/* ---------- layout / aparência ---------- */
+qsa('#layoutSeg button').forEach(b => b.onclick = () => sync.set({ layout: b.dataset.layout }));
+qsa('#alignSeg button').forEach(b => b.onclick = () => sync.set({ align: b.dataset.align }));
+qs('#fs').oninput = e => sync.set({ fontSize: +e.target.value });
+qs('#lh').oninput = e => sync.set({ lineHeight: +e.target.value });
+qs('#mirrorH').onclick = () => sync.set({ mirrorH: !S().mirrorH });
+qs('#mirrorV').onclick = () => sync.set({ mirrorV: !S().mirrorV });
+qs('#mirrorReset').onclick = () => sync.set({ mirrorH: false, mirrorV: false });
+qs('#guideBtn').onclick = () => sync.set({ guide: !S().guide });
+
+/* ---------- mensagem ---------- */
+qs('#msg').addEventListener('input', e => sync.set({ message: e.target.value }));
+qs('#msgShow').onclick = () => sync.set({ messageOn: true });
+qs('#msgHide').onclick = () => sync.set({ messageOn: false });
+qsa('.chips .q').forEach(b => b.onclick = () => {
+  qs('#msg').value = b.textContent;
+  sync.set({ message: b.textContent, messageOn: true });
+});
+
+/* ---------- janela do palestrante / sala ---------- */
+const promptUrl = () => new URL('prompter.html?sala=' + encodeURIComponent(room), location.href).href;
+qs('#openPrompter').onclick = () => {
+  prompterWin = window.open(promptUrl(), 'prompter_' + room, 'width=1280,height=720');
+};
+qs('#copy').onclick = async () => {
+  try { await navigator.clipboard.writeText(promptUrl()); qs('#copy').textContent = 'Copiado!';
+        setTimeout(() => qs('#copy').textContent = 'Copiar', 1500); } catch {}
+};
+qs('#applyRoom').onclick = () => {
+  const v = (qs('#room').value || 'PALCO-1').trim().toUpperCase();
+  location.search = '?sala=' + encodeURIComponent(v);
+};
+
+/* ---------- render da mesa ---------- */
+let typing = null;
+function render(s) {
+  qs('#roomName').textContent = room;
+  qs('#room').value = room;
+  qs('#link').value = promptUrl();
+  qs('#pv').contentWindow?.location?.href?.includes('prompter') || null;
+
+  if (document.activeElement !== qs('#script')) qs('#script').value = s.script;
+  if (document.activeElement !== qs('#title')) qs('#title').value = s.title;
+  if (document.activeElement !== qs('#speakerName')) qs('#speakerName').value = s.speaker;
+  if (document.activeElement !== qs('#msg')) qs('#msg').value = s.message;
+  if (document.activeElement !== qs('#dur')) qs('#dur').value = fmtDur(s.durationSec);
+  if (document.activeElement !== qs('#warn')) qs('#warn').value = s.warnSec;
+
+  qs('#play').textContent  = s.running ? '⏸ Pausar rolagem' : '▶ Iniciar rolagem';
+  qs('#tPlay').textContent = s.tRunning ? '⏸ Pausar' : '▶ Iniciar';
+  qs('#speed').value = s.speed; qs('#spdVal').textContent = s.speed;
+  qs('#fs').value = s.fontSize; qs('#fsVal').textContent = s.fontSize;
+  qs('#lh').value = s.lineHeight; qs('#lhVal').textContent = s.lineHeight.toFixed(2);
+  qs('#mirrorH').classList.toggle('on', s.mirrorH);
+  qs('#mirrorV').classList.toggle('on', s.mirrorV);
+  qs('#guideBtn').classList.toggle('on', s.guide);
+  qsa('#layoutSeg button').forEach(b => b.classList.toggle('on', b.dataset.layout === s.layout));
+  qsa('#alignSeg button').forEach(b => b.classList.toggle('on', b.dataset.align === s.align));
+  qsa('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.mode === s.mode));
+
+  const words = (s.script.trim().match(/\S+/g) || []).length;
+  qs('#stats').textContent = `${words} palavras • ~${Math.ceil(words / 130)} min de fala`;
+}
+sync.onChange(render);
+
+/* relógio da mesa + estado da janela */
+setInterval(() => {
+  qs('#clock').textContent = Calc.clock(S());
+  const open = prompterWin && !prompterWin.closed;
+  qs('#dot').classList.toggle('off', !open);
+  qs('#connTxt').textContent = open ? 'tela do palestrante aberta' : 'tela do palestrante fechada';
+}, 200);
+
+/* atalhos da mesa */
+addEventListener('keydown', e => {
+  if (['INPUT','TEXTAREA'].includes(e.target.tagName)) return;
+  if (e.code === 'Space') { e.preventDefault(); qs('#play').click(); }
+  if (e.key === 't') qs('#tPlay').click();
+  if (e.key === 'ArrowUp')   { e.preventDefault(); nudge(-3); }
+  if (e.key === 'ArrowDown') { e.preventDefault(); nudge(3); }
+  if (e.key === '0') qs('#restart').click();
+});
+</script>
+</body>
+</html>

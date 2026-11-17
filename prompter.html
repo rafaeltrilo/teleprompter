@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Teleprompter — Palestrante</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body class="prompter">
+<div id="stage">
+  <div id="msgbar"></div>
+  <div id="timerzone"><div id="timer" class="clock">15:00</div></div>
+  <div id="viewport">
+    <div id="flip"><div id="track"></div></div>
+    <div id="guide"></div>
+  </div>
+</div>
+<div class="hint" id="hint">Tela do palestrante — controlada pela mesa</div>
+
+<script src="sync.js"></script>
+<script>
+const sync = new Sync();
+const track = document.getElementById('track');
+const flip  = document.getElementById('flip');
+const vp    = document.getElementById('viewport');
+const timer = document.getElementById('timer');
+const msg   = document.getElementById('msgbar');
+const guide = document.getElementById('guide');
+
+function render(s) {
+  document.body.className = 'prompter layout-' + s.layout;
+
+  track.textContent = s.script;
+  track.style.fontSize   = s.fontSize + 'px';
+  track.style.lineHeight = s.lineHeight;
+  track.style.textAlign  = s.align;
+
+  // Orientação: monitor direto, espelho de vidro (horizontal) ou prompter de lente (vertical)
+  // espelha a TELA INTEIRA (texto, cronômetro e mensagem ficam legíveis no vidro)
+  const sx = s.mirrorH ? -1 : 1, sy = s.mirrorV ? -1 : 1;
+  document.getElementById('stage').style.transform = `scale(${sx},${sy})`;
+
+  guide.classList.toggle('show', !!s.guide);
+  guide.style.top = '38%';
+
+  timer.style.fontSize = s.layout === 'timer' ? 'min(32vw,38vh)' : 'min(11vw,13vh)';
+  const rem = Calc.remaining(s);
+  timer.classList.toggle('warn', s.mode === 'down' && rem <= s.warnSec && rem > 0);
+  timer.classList.toggle('over', s.mode === 'down' && rem <= 0);
+
+  msg.textContent = s.message;
+  msg.classList.toggle('show', s.messageOn && !!s.message.trim());
+}
+
+function frame() {
+  const s = sync.state;
+  const max = Math.max(0, track.scrollHeight);          // rola até o texto sair da tela
+  let off = Calc.scrollOffset(s);
+  const limit = max + vp.clientHeight * 0.1;
+  if (off > limit) off = limit;
+  // começa logo abaixo da linha guia e sobe
+  track.style.transform = `translateY(${vp.clientHeight * 0.38 - off}px)`;
+  timer.textContent = Calc.clock(s);
+  requestAnimationFrame(frame);
+}
+
+sync.onChange(render);
+addEventListener('resize', () => render(sync.state));
+requestAnimationFrame(frame);
+
+// some com a dica depois de alguns segundos
+setTimeout(() => { const h = document.getElementById('hint'); h.style.opacity = 0; }, 4000);
+
+// atalhos opcionais (o palestrante não precisa usar nada disso)
+addEventListener('keydown', e => {
+  if (e.key === 'f') document.documentElement.requestFullscreen?.();
+  if (e.key === 'Escape') document.exitFullscreen?.();
+});
+addEventListener('dblclick', () => {
+  document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.();
+});
+</script>
+</body>
+</html>
