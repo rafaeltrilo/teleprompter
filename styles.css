@@ -78,3 +78,4 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border:0;border-radiu
   .preview{height:200px}
   button{padding:11px 14px}
 }
+.preview{transition:transform .2s}

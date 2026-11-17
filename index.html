@@ -19,8 +19,13 @@
   <!-- COLUNA ESQUERDA -->
   <section class="col">
     <div class="card">
-      <h2>Prévia do que o palestrante vê</h2>
-      <div class="preview"><iframe id="pv" src="prompter.html"></iframe></div>
+      <div class="row" style="margin-bottom:12px">
+        <h2 style="margin:0">Prévia do que o palestrante vê</h2>
+        <div class="spacer"></div>
+        <button id="pvMirror" class="on" style="padding:6px 11px;font-size:12px">Prévia sem espelho</button>
+      </div>
+      <div class="preview" id="pvBox"><iframe id="pv" src="prompter.html"></iframe></div>
+      <p class="muted" id="pvNote" style="margin:8px 0 0"></p>
       <div class="row" style="margin-top:14px">
         <button class="accent" id="play" style="flex:1">▶ Iniciar rolagem</button>
         <button id="restart">⟲ Voltar ao topo</button>
@@ -235,6 +240,22 @@ qs('#applyRoom').onclick = () => {
   location.search = '?sala=' + encodeURIComponent(v);
 };
 
+/* ---------- prévia: corrige o espelhamento só aqui na mesa ---------- */
+let pvUnmirror = true;
+qs('#pvMirror').onclick = () => { pvUnmirror = !pvUnmirror; render(S()); };
+function renderPreview(s) {
+  const b = qs('#pvMirror');
+  b.classList.toggle('on', pvUnmirror);
+  b.textContent = pvUnmirror ? 'Prévia sem espelho' : 'Prévia igual ao palco';
+  const sx = (pvUnmirror && s.mirrorH) ? -1 : 1;
+  const sy = (pvUnmirror && s.mirrorV) ? -1 : 1;
+  qs('#pvBox').style.transform = `scale(${sx},${sy})`;
+  const espelhado = s.mirrorH || s.mirrorV;
+  qs('#pvNote').textContent = !espelhado ? 'Texto normal no palco e na prévia.'
+    : pvUnmirror ? 'O palco está espelhado; a prévia foi desespelhada para você ler.'
+                 : 'Prévia exatamente como sai no palco (espelhada).';
+}
+
 /* ---------- render da mesa ---------- */
 let typing = null;
 function render(s) {
@@ -261,6 +282,8 @@ function render(s) {
   qsa('#layoutSeg button').forEach(b => b.classList.toggle('on', b.dataset.layout === s.layout));
   qsa('#alignSeg button').forEach(b => b.classList.toggle('on', b.dataset.align === s.align));
   qsa('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.mode === s.mode));
+
+  renderPreview(s);
 
   const words = (s.script.trim().match(/\S+/g) || []).length;
   qs('#stats').textContent = `${words} palavras • ~${Math.ceil(words / 130)} min de fala`;

@@ -20,6 +20,7 @@ Teleprompter + cronômetro de palco, em HTML/CSS/JS puro. Sem build, sem servido
 - Orientação: normal (monitor direto), espelho horizontal (vidro/beam-splitter) e vertical (prompter de lente) — espelha a tela inteira, inclusive cronômetro e mensagens.
 - Tamanho da fonte, entrelinha, alinhamento, linha guia de leitura.
 - Mensagens ao vivo com frases prontas.
+- Prévia da mesa com botão **Prévia sem espelho**: mesmo com o palco espelhado, o operador lê o texto normalmente (só afeta a mesa).
 - Importar roteiro `.txt`, contagem de palavras e estimativa de fala.
 - Layout adaptado para PC e celular.
 
