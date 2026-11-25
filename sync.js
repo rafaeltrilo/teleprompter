@@ -4,6 +4,8 @@
    A rolagem e o cronômetro são sincronizados por "âncora de tempo"
    (instante de início + offset), então as telas nunca ficam defasadas. */
 
+const TP_VERSAO = '5';   // usado para detectar cache antigo
+
 const DEFAULTS = {
   title: 'Palestra Principal',
   speaker: '',

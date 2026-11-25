@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Teleprompter — Diagnóstico</title><link rel="stylesheet" href="styles.css"></head>
+<title>Teleprompter — Diagnóstico</title><link rel="stylesheet" href="styles.css?v=5"></head>
 <body>
 <header class="top"><div class="logo">TP</div>
   <div class="brand"><b>Diagnóstico da hospedagem</b><span id="where"></span></div></header>
@@ -13,6 +13,7 @@
   </div>
   <div class="card"><h2>Detalhes brutos</h2><pre id="raw" class="muted" style="white-space:pre-wrap;word-break:break-all"></pre></div>
 </main>
+<script src="sync.js?v=5"></script>
 <script>
 const base = location.pathname.replace(/[^/]*$/, '');
 const out = document.getElementById('out'), raw = document.getElementById('raw');
@@ -62,11 +63,23 @@ async function testar(url, opts) {
     } catch (e) { rows.push(line(false,'Gravar o estado', e.message)); }
   }
 
-  // 3) arquivos do app
+  // 3) arquivos do app + versão enviada ao servidor
   for (const f of ['index.html','prompter.html','sync.js','styles.css']) {
-    try { const { r } = await testar(base + f); rows.push(line(r.ok, f, 'HTTP ' + r.status)); }
-    catch (e) { rows.push(line(false, f, e.message)); }
+    try {
+      const { r, txt } = await testar(base + f + '?cb=' + Date.now());
+      let extra = 'HTTP ' + r.status;
+      if (f === 'sync.js') {
+        const m = txt.match(/TP_VERSAO\s*=\s*'([^']+)'/);
+        extra += m ? ' — versão ' + m[1] + ' (atual)' : ' — <b>VERSÃO ANTIGA</b>: envie o sync.js novo para o servidor';
+        if (!m) { rows.push(line(false, f, extra)); continue; }
+      }
+      rows.push(line(r.ok, f, extra));
+    } catch (e) { rows.push(line(false, f, e.message)); }
   }
+  rows.push(line(typeof TP_VERSAO !== 'undefined',
+    'sync.js carregado neste navegador',
+    typeof TP_VERSAO !== 'undefined' ? 'versão ' + TP_VERSAO + ' — sem cache antigo'
+      : 'o navegador está usando uma cópia velha; recarregue com Ctrl+F5'));
 
   out.innerHTML = rows.join('');
   document.getElementById('verdict').innerHTML = publicou

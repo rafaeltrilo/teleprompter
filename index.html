@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Teleprompter — Mesa de Controle</title>
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
 <header class="top">
@@ -150,7 +150,7 @@
   </section>
 </main>
 
-<script src="sync.js"></script>
+<script src="sync.js?v=5"></script>
 <script>
 const qs = s => document.querySelector(s);
 const qsa = s => [...document.querySelectorAll(s)];
@@ -324,6 +324,11 @@ setInterval(() => {
                  : file ? 'modo local (arquivo aberto direto)'
                         : 'sem servidor';
   const ban = qs('#banner');
+  if (typeof TP_VERSAO === 'undefined') {
+    ban.hidden = false; ban.className = 'banner err';
+    ban.innerHTML = '<b>Arquivo antigo em cache.</b> O navegador carregou uma versão velha do <code>sync.js</code>. Recarregue com <b>Ctrl+F5</b> (ou Cmd+Shift+R). Se persistir, confirme que o <code>sync.js</code> novo foi enviado ao servidor.';
+    return;
+  }
   if (net) { ban.hidden = true; }
   else {
     ban.hidden = false;
