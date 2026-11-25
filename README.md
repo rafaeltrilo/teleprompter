@@ -14,7 +14,9 @@ Envie **todos os arquivos** da pasta para o seu servidor (`index.html`, `prompte
 - Mesa de controle: `https://seusite.com/teleprompter/`
 - Tela do palestrante (celular/TV): `https://seusite.com/teleprompter/prompter.html?sala=PALCO-1`
 
-Requisitos: PHP ativo e permissão de escrita na pasta (o `api.php` cria uma subpasta `.dados/`, protegida pelo `.htaccess`). O topo da mesa deve mostrar **"sincronizando (PHP)"**.
+Requisitos: PHP ativo e permissão de escrita na pasta (o `api.php` cria a subpasta `dados/`; se não conseguir, usa a pasta temporária do servidor). O topo da mesa deve mostrar **"sincronizando (PHP)"**.
+
+Deu errado? Abra **`diagnostico.html`** na mesma pasta: ele testa o `api.php`, a execução do PHP, a gravação do estado e cada arquivo, apontando a causa.
 
 ## Rodando localmente com Node
 ```bash

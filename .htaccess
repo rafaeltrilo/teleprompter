@@ -1,8 +1,18 @@
-# Evita cache do estado e dos arquivos do teleprompter
+# Evita que o navegador guarde versões antigas dos arquivos do teleprompter
 <IfModule mod_headers.c>
-  <FilesMatch "\.(html|js|css|php)$">
+  <FilesMatch "\.(html|js|css)$">
     Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
   </FilesMatch>
 </IfModule>
-# Protege a pasta de estado
-RedirectMatch 404 /\.dados(/|$)
+
+# Impede acesso direto aos arquivos de estado
+<IfModule mod_authz_core.c>
+  <FilesMatch "\.json$">
+    Require all denied
+  </FilesMatch>
+</IfModule>
+
+# Se o site usa WordPress/Laravel na raiz, não deixa as regras deles pegarem esta pasta
+<IfModule mod_rewrite.c>
+  RewriteEngine Off
+</IfModule>

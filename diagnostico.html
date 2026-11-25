@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Teleprompter — Diagnóstico</title><link rel="stylesheet" href="styles.css"></head>
+<body>
+<header class="top"><div class="logo">TP</div>
+  <div class="brand"><b>Diagnóstico da hospedagem</b><span id="where"></span></div></header>
+<main class="wrap" style="grid-template-columns:1fr">
+  <div class="card"><h2>Testes</h2><div id="out">executando...</div>
+    <p class="muted" id="verdict" style="margin-top:16px"></p>
+    <div class="row" style="margin-top:10px"><button onclick="location.reload()">Testar de novo</button>
+    <a href="index.html"><button class="primary">Voltar à mesa</button></a></div>
+  </div>
+  <div class="card"><h2>Detalhes brutos</h2><pre id="raw" class="muted" style="white-space:pre-wrap;word-break:break-all"></pre></div>
+</main>
+<script>
+const base = location.pathname.replace(/[^/]*$/, '');
+const out = document.getElementById('out'), raw = document.getElementById('raw');
+document.getElementById('where').textContent = location.origin + base;
+const rows = [];
+const line = (ok, titulo, detalhe) =>
+  `<div class="row" style="align-items:flex-start;margin:10px 0"><b style="color:${ok?'#2bbf6a':'#e8465d'}">${ok?'OK':'FALHOU'}</b>
+   <div style="flex:1"><b>${titulo}</b><div class="muted">${detalhe}</div></div></div>`;
+
+async function testar(url, opts) {
+  const r = await fetch(url, Object.assign({ cache: 'no-store' }, opts || {}));
+  const txt = await r.text();
+  raw.textContent += `\n${opts && opts.method || 'GET'} ${url}\n  -> HTTP ${r.status} ${r.headers.get('content-type') || ''}\n  ${txt.slice(0,300)}\n`;
+  return { r, txt };
+}
+
+(async () => {
+  let php = null, grav = null, publicou = false;
+
+  // 1) existe api.php?
+  try {
+    const { r, txt } = await testar(base + 'api.php?a=ping');
+    if (r.status === 404) rows.push(line(false,'api.php não encontrado','O arquivo não foi enviado para esta pasta. Suba o api.php junto com o index.html.'));
+    else if (txt.trim().startsWith('<?php') || /<\?php/.test(txt)) rows.push(line(false,'PHP não está sendo executado','O servidor devolveu o código-fonte do PHP. O PHP está desativado nesta pasta/hospedagem.'));
+    else if (r.status >= 500) rows.push(line(false,'Erro 500 no servidor','Pode ser o .htaccess (diretiva não suportada) ou erro de PHP. Tente renomear o .htaccess para .htaccess.off e testar de novo.'));
+    else {
+      try { php = JSON.parse(txt); } catch {}
+      if (php && php.ok) {
+        rows.push(line(true, 'api.php respondendo', 'PHP ' + php.php));
+        grav = php.gravavel;
+        rows.push(line(!!grav, grav ? 'Pasta gravável' : 'Pasta sem permissão de escrita', grav ? php.pasta : (php.erro || '')));
+      } else rows.push(line(false,'Resposta inesperada do api.php','Veja os detalhes brutos abaixo.'));
+    }
+  } catch (e) { rows.push(line(false,'Não consegui chamar o api.php', e.message)); }
+
+  // 2) gravar e ler de volta
+  if (php && php.ok) {
+    try {
+      const marca = { rev: Date.now(), teste: true };
+      const { r } = await testar(base + 'api.php?a=state&sala=DIAGNOSTICO', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(marca) });
+      if (r.status === 204) {
+        const { r: r2, txt } = await testar(base + 'api.php?a=state&sala=DIAGNOSTICO&rev=0');
+        publicou = r2.status === 200 && txt.includes('"teste"');
+        rows.push(line(publicou,'Gravar e ler o estado', publicou ? 'O servidor guardou e devolveu o estado — a sincronia funciona.' : 'Gravou mas não devolveu o estado.'));
+      } else rows.push(line(false,'Gravar o estado','HTTP ' + r.status + ' — provável falta de permissão de escrita na pasta.'));
+    } catch (e) { rows.push(line(false,'Gravar o estado', e.message)); }
+  }
+
+  // 3) arquivos do app
+  for (const f of ['index.html','prompter.html','sync.js','styles.css']) {
+    try { const { r } = await testar(base + f); rows.push(line(r.ok, f, 'HTTP ' + r.status)); }
+    catch (e) { rows.push(line(false, f, e.message)); }
+  }
+
+  out.innerHTML = rows.join('');
+  document.getElementById('verdict').innerHTML = publicou
+    ? '<b style="color:#2bbf6a">Tudo certo.</b> Abra a mesa e o topo deve mostrar “sincronizando (PHP)”. Se ainda aparecer o aviso, force recarregar a página (Ctrl+F5 / puxar para baixo no celular) — o navegador pode estar com o sync.js antigo em cache.'
+    : 'Corrija o primeiro item marcado como <b style="color:#e8465d">FALHOU</b> e teste de novo.';
+})();
+</script>
+</body></html>

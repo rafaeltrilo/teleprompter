@@ -317,7 +317,8 @@ setInterval(() => {
     ban.className = 'banner ' + (file ? 'err' : 'warn');
     ban.innerHTML = file
       ? '<b>Você abriu o arquivo direto (file://).</b> Outros aparelhos NÃO vão sincronizar. Publique a pasta no seu servidor (Apache com PHP) ou rode <code>node server.js</code> localmente.'
-      : '<b>Sincronia indisponível</b> em <code>' + location.host + '</code>: nem <code>api.php</code> (Apache/PHP) nem <code>server.js</code> (Node) responderam. Se o site é Apache, envie o <code>api.php</code> junto e confirme que o PHP está ativo e que a pasta tem permissão de escrita.';
+      : '<b>Sincronia indisponível</b> em <code>' + location.host + '</code>: o <code>api.php</code> não respondeu. ' +
+        '<a href="diagnostico.html" style="color:inherit"><b>Abrir o diagnóstico</b></a> — ele testa cada item e diz exatamente o que está faltando.';
   }
 }, 200);
 
