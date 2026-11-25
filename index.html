@@ -307,7 +307,7 @@ setInterval(() => {
   const net = sync.online;
   qs('#dot').classList.toggle('off', !(net || open));
   const file = location.protocol === 'file:';
-  qs('#connTxt').textContent = net ? 'servidor conectado — celular/TV sincronizam'
+  qs('#connTxt').textContent = net ? ('sincronizando (' + (sync.mode === 'php' ? 'PHP' : 'Node') + ') — celular/TV ao vivo')
                  : file ? 'modo local (arquivo aberto direto)'
                         : 'sem servidor';
   const ban = qs('#banner');
@@ -316,8 +316,8 @@ setInterval(() => {
     ban.hidden = false;
     ban.className = 'banner ' + (file ? 'err' : 'warn');
     ban.innerHTML = file
-      ? '<b>Você abriu o arquivo direto (file://).</b> O celular NÃO vai sincronizar. Abra o terminal na pasta do projeto e rode <code>node server.js</code>, depois acesse <code>http://localhost:8080/</code>.'
-      : '<b>Servidor de sincronia não encontrado</b> em <code>' + location.host + '</code>. Esta página está sendo servida por um servidor estático (ex.: <code>python3 -m http.server</code>), que não sincroniza dispositivos. Pare esse servidor e rode <code>node server.js</code> na pasta do projeto — depois use <code>http://localhost:8080/</code>.';
+      ? '<b>Você abriu o arquivo direto (file://).</b> Outros aparelhos NÃO vão sincronizar. Publique a pasta no seu servidor (Apache com PHP) ou rode <code>node server.js</code> localmente.'
+      : '<b>Sincronia indisponível</b> em <code>' + location.host + '</code>: nem <code>api.php</code> (Apache/PHP) nem <code>server.js</code> (Node) responderam. Se o site é Apache, envie o <code>api.php</code> junto e confirme que o PHP está ativo e que a pasta tem permissão de escrita.';
   }
 }, 200);
 

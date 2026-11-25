@@ -1,0 +1,8 @@
+# Evita cache do estado e dos arquivos do teleprompter
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|js|css|php)$">
+    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+  </FilesMatch>
+</IfModule>
+# Protege a pasta de estado
+RedirectMatch 404 /\.dados(/|$)

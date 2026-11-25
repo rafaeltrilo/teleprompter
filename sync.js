@@ -42,13 +42,14 @@ function roomFromUrl() {
    Medimos a diferença contra o relógio do servidor e usamos NOW() em tudo. */
 let CLOCK_OFFSET = 0;
 function NOW() { return Date.now() + CLOCK_OFFSET; }
+let TIME_URL = null;          // definido pelo transporte escolhido
 async function syncClock() {
-  if (location.protocol === 'file:') return;
+  if (location.protocol === 'file:' || !TIME_URL) return;
   let best = Infinity;
   for (let i = 0; i < 4; i++) {
     try {
       const t0 = Date.now();
-      const r = await fetch('/time', { cache: 'no-store' });
+      const r = await fetch(TIME_URL, { cache: 'no-store' });
       const t1 = Date.now();
       const { t } = await r.json();
       const rtt = t1 - t0;
@@ -56,7 +57,6 @@ async function syncClock() {
     } catch { return; }
   }
 }
-syncClock();
 setInterval(syncClock, 60000);
 
 class Sync {
@@ -67,6 +67,7 @@ class Sync {
     this.listeners = [];
     this.state = this.load();
     this.online = false;
+    this.mode = 'pending';
     if (this.bc) this.bc.onmessage = (e) => this.apply(e.data, false);
     addEventListener('storage', (e) => {
       if (e.key === this.key && e.newValue) this.apply(JSON.parse(e.newValue), false);
@@ -74,24 +75,68 @@ class Sync {
     this.connect();   // sincronia entre DISPOSITIVOS (celular, TV, outro PC)
   }
 
-  /* ---- transporte em rede (SSE), ativo quando servido por http(s) ---- */
-  connect() {
-    if (location.protocol === 'file:' || typeof EventSource === 'undefined') return;
-    const q = '?sala=' + encodeURIComponent(this.room);
-    const es = new EventSource('/events' + q);
-    this.es = es;
-    es.onopen = () => { this.online = true; this.listeners.forEach(fn => fn(this.state)); };
-    es.onerror = () => { this.online = false; };       // o EventSource reconecta sozinho
-    es.onmessage = (e) => {
-      try { const d = JSON.parse(e.data); if (d && d.rev) this.apply(d, false); } catch {}
-    };
+  /* ---- transporte em rede ----
+     Detecta sozinho onde está hospedado:
+       php  -> api.php  (Apache / hospedagem comum, sem Node)
+       node -> /events + /state (server.js, SSE)
+       off  -> só este navegador (arquivo aberto direto ou servidor estático) */
+  async connect() {
+    if (location.protocol === 'file:') { this.mode = 'off'; return; }
+    const base = location.pathname.replace(/[^/]*$/, '');   // funciona em subpasta
+    try {
+      const r = await fetch(base + 'api.php?a=ping', { cache: 'no-store' });
+      if (r.ok && (await r.json()).ok) {
+        this.mode = 'php'; this.api = base + 'api.php';
+        TIME_URL = this.api + '?a=time'; syncClock();
+        this.pollLoop();
+        return;
+      }
+    } catch {}
+    if (typeof EventSource !== 'undefined') {
+      this.mode = 'node'; TIME_URL = base + 'time'; syncClock();
+      const es = new EventSource(base + 'events?sala=' + encodeURIComponent(this.room));
+      this.es = es;
+      es.onopen  = () => { this.online = true; this.listeners.forEach(fn => fn(this.state)); };
+      es.onerror = () => { this.online = false; };     // o EventSource reconecta sozinho
+      es.onmessage = (e) => {
+        try { const d = JSON.parse(e.data); if (d && d.rev) this.apply(d, false); } catch {}
+      };
+    }
   }
+
+  /* PHP: pergunta por mudanças; o servidor segura a resposta até algo mudar */
+  async pollLoop() {
+    while (this.mode === 'php') {
+      try {
+        const url = this.api + '?a=state&sala=' + encodeURIComponent(this.room) +
+                    '&rev=' + encodeURIComponent(this.state.rev || 0);
+        const r = await fetch(url, { cache: 'no-store' });
+        this.online = r.ok || r.status === 204;
+        if (r.status === 200) {
+          const d = await r.json();
+          // só aceita se for mais novo que o nosso (evita ressuscitar estado antigo)
+          if (d.estado && d.estado.rev && d.estado.rev > (this.state.rev || 0)) {
+            this.apply(d.estado, false);
+          }
+        }
+        this.listeners.forEach(fn => fn(this.state));
+        await new Promise(r => setTimeout(r, 500));
+      } catch {
+        this.online = false;
+        this.listeners.forEach(fn => fn(this.state));
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
+  }
+
   publish() {
-    if (location.protocol === 'file:') return;
-    fetch('/state?sala=' + encodeURIComponent(this.room), {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(this.state), keepalive: true
-    }).catch(() => {});
+    if (this.mode === 'off' || location.protocol === 'file:') return;
+    const base = location.pathname.replace(/[^/]*$/, '');
+    const url = this.mode === 'php'
+      ? this.api + '?a=state&sala=' + encodeURIComponent(this.room)
+      : base + 'state?sala=' + encodeURIComponent(this.room);
+    fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify(this.state), keepalive: true }).catch(() => {});
   }
   load() {
     try {

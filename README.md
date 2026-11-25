@@ -8,7 +8,15 @@ Teleprompter + cronômetro de palco, em HTML/CSS/JS puro. Sem build, sem servido
 - `sync.js` — sincronia entre as telas + cálculos de rolagem/cronômetro
 - `styles.css`
 
-## Como usar (com celular / TV — recomendado)
+## Hospedagem Apache / site na web (PHP) — recomendado
+Envie **todos os arquivos** da pasta para o seu servidor (`index.html`, `prompter.html`, `sync.js`, `styles.css`, **`api.php`**, `.htaccess`). Nada para instalar: o `api.php` cuida da sincronia.
+
+- Mesa de controle: `https://seusite.com/teleprompter/`
+- Tela do palestrante (celular/TV): `https://seusite.com/teleprompter/prompter.html?sala=PALCO-1`
+
+Requisitos: PHP ativo e permissão de escrita na pasta (o `api.php` cria uma subpasta `.dados/`, protegida pelo `.htaccess`). O topo da mesa deve mostrar **"sincronizando (PHP)"**.
+
+## Rodando localmente com Node
 ```bash
 node server.js          # ou: npm start   (porta 8080; PORT=3000 node server.js)
 ```
@@ -36,9 +44,11 @@ Tudo o que você mexe na mesa chega na hora no celular: rolagem, velocidade, cro
 `Espaço` play/pause da rolagem · `T` cronômetro · `↑`/`↓` recuar/avançar · `0` topo.
 
 ## Sincronia
-- **Com `node server.js`**: a mesa publica o estado em `POST /state` e as telas recebem por **SSE** (`GET /events`) — funciona entre dispositivos diferentes (celular, tablet, TV, outro PC) na mesma rede. `GET /time` alinha os relógios.
-- **Sem servidor** (`file://`): `BroadcastChannel` + `localStorage`, só entre janelas do mesmo navegador.
+O `sync.js` detecta sozinho onde está hospedado:
+1. **PHP** (`api.php` responde) → a mesa publica o estado e as telas consultam a cada 500 ms. Ideal para Apache/hospedagem compartilhada.
+2. **Node** (`server.js`) → SSE em `/events`, push instantâneo.
+3. **Nenhum** (`file://` ou servidor estático) → só janelas do mesmo navegador, com aviso visível na mesa.
 
-Para usar fora da rede local, basta hospedar esta pasta em qualquer serviço que rode Node (Render, Railway, Fly, VPS) — o mesmo `server.js` serve os arquivos e a sincronia.
+Rolagem e cronômetro não dependem da latência: as telas recebem **marcas de tempo** (instante do play + offset) e calculam a posição localmente, com os relógios alinhados ao do servidor (`?a=time` / `/time`). Por isso 300 ms de rede não causam defasagem.
 
 Salas: use `?sala=NOME` para rodar vários palcos no mesmo servidor sem se misturarem.
