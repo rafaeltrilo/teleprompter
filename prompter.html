@@ -74,7 +74,10 @@ setTimeout(() => { hint.style.opacity = 0; }, 4000);
 // aviso discreto se a conexão com a mesa cair
 setInterval(() => {
   if (location.protocol === 'file:' || new URLSearchParams(location.search).has('previa')) return;
-  if (!sync.online) { hint.textContent = 'reconectando à mesa de controle...'; hint.style.opacity = .9; }
+  if (!sync.online) {
+    hint.textContent = 'sem conexão com a mesa — o operador precisa rodar "node server.js"';
+    hint.style.opacity = .9;
+  }
   else if (hint.textContent.startsWith('reconectando')) { hint.style.opacity = 0; }
 }, 1500);
 

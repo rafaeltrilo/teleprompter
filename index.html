@@ -15,6 +15,7 @@
   <button class="primary" id="openPrompter">Abrir tela do palestrante</button>
 </header>
 
+<div id="banner" class="banner" hidden></div>
 <main class="wrap">
   <!-- COLUNA ESQUERDA -->
   <section class="col">
@@ -272,7 +273,6 @@ function render(s) {
   qs('#roomName').textContent = room;
   qs('#room').value = room;
   qs('#link').value = promptUrl();
-  qs('#pv').contentWindow?.location?.href?.includes('prompter') || null;
 
   if (document.activeElement !== qs('#script')) qs('#script').value = s.script;
   if (document.activeElement !== qs('#title')) qs('#title').value = s.title;
@@ -306,11 +306,19 @@ setInterval(() => {
   const open = prompterWin && !prompterWin.closed;
   const net = sync.online;
   qs('#dot').classList.toggle('off', !(net || open));
-  qs('#connTxt').textContent = net
-    ? 'servidor conectado — celular/TV sincronizam'
-    : (location.protocol === 'file:'
-        ? 'modo local (sem servidor): só janelas deste navegador'
-        : 'reconectando ao servidor...');
+  const file = location.protocol === 'file:';
+  qs('#connTxt').textContent = net ? 'servidor conectado — celular/TV sincronizam'
+                 : file ? 'modo local (arquivo aberto direto)'
+                        : 'sem servidor';
+  const ban = qs('#banner');
+  if (net) { ban.hidden = true; }
+  else {
+    ban.hidden = false;
+    ban.className = 'banner ' + (file ? 'err' : 'warn');
+    ban.innerHTML = file
+      ? '<b>Você abriu o arquivo direto (file://).</b> O celular NÃO vai sincronizar. Abra o terminal na pasta do projeto e rode <code>node server.js</code>, depois acesse <code>http://localhost:8080/</code>.'
+      : '<b>Servidor de sincronia não encontrado</b> em <code>' + location.host + '</code>. Esta página está sendo servida por um servidor estático (ex.: <code>python3 -m http.server</code>), que não sincroniza dispositivos. Pare esse servidor e rode <code>node server.js</code> na pasta do projeto — depois use <code>http://localhost:8080/</code>.';
+  }
 }, 200);
 
 /* atalhos da mesa */
