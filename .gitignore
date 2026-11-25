@@ -1,0 +1,4 @@
+# estado das salas em execução — nunca versionar
+dados/
+.dados/
+node_modules/

@@ -143,6 +143,9 @@
         <div><label>Sala</label><input id="room" value="PALCO-1"></div>
         <div style="display:flex;align-items:flex-end"><button id="applyRoom" style="width:100%">Trocar sala</button></div>
       </div>
+      <div class="row" style="margin-top:10px">
+        <button id="resetAll" class="danger">Limpar sala (voltar ao padrão)</button>
+      </div>
     </div>
   </section>
 </main>
@@ -266,6 +269,16 @@ function renderPreview(s) {
     : pvUnmirror ? 'O palco está espelhado; a prévia foi desespelhada para você ler.'
                  : 'Prévia exatamente como sai no palco (espelhada).';
 }
+
+/* zera tudo: útil quando a sala ficou com um estado antigo (rolagem correndo,
+   cronômetro estourado, mensagem na tela) */
+qs('#resetAll').onclick = () => {
+  if (!confirm('Limpar o roteiro, o cronômetro e as mensagens desta sala?')) return;
+  sync.set({ script: '', title: 'Palestra Principal', speaker: '', message: '', messageOn: false,
+             running: false, offset: 0, startedAt: 0,
+             tRunning: false, tElapsed: 0, tStartedAt: 0,
+             layout: 'both', mirrorH: false, mirrorV: false });
+};
 
 /* ---------- render da mesa ---------- */
 let typing = null;
