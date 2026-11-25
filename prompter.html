@@ -69,7 +69,14 @@ addEventListener('resize', () => render(sync.state));
 requestAnimationFrame(frame);
 
 // some com a dica depois de alguns segundos
-setTimeout(() => { const h = document.getElementById('hint'); h.style.opacity = 0; }, 4000);
+const hint = document.getElementById('hint');
+setTimeout(() => { hint.style.opacity = 0; }, 4000);
+// aviso discreto se a conexão com a mesa cair
+setInterval(() => {
+  if (location.protocol === 'file:' || new URLSearchParams(location.search).has('previa')) return;
+  if (!sync.online) { hint.textContent = 'reconectando à mesa de controle...'; hint.style.opacity = .9; }
+  else if (hint.textContent.startsWith('reconectando')) { hint.style.opacity = 0; }
+}, 1500);
 
 // atalhos opcionais (o palestrante não precisa usar nada disso)
 addEventListener('keydown', e => {

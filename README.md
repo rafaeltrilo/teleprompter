@@ -8,8 +8,16 @@ Teleprompter + cronômetro de palco, em HTML/CSS/JS puro. Sem build, sem servido
 - `sync.js` — sincronia entre as telas + cálculos de rolagem/cronômetro
 - `styles.css`
 
-## Como usar
-1. Abra `index.html` (duplo clique, ou sirva a pasta: `python3 -m http.server 8077`).
+## Como usar (com celular / TV — recomendado)
+```bash
+node server.js          # ou: npm start   (porta 8080; PORT=3000 node server.js)
+```
+O terminal mostra os links. Na mesa (seu PC) abra `http://localhost:8080/`; no **celular/TV da mesma rede Wi-Fi** abra o link com o IP (`http://192.168.x.x:8080/prompter.html?sala=PALCO-1`) — ele também aparece pronto para copiar no cartão "Celular / TV" da mesa.
+
+Tudo o que você mexe na mesa chega na hora no celular: rolagem, velocidade, cronômetro, layout, espelhamento e mensagens. O relógio das duas telas é alinhado com o do servidor, então o cronômetro não fica defasado.
+
+## Como usar (sem servidor)
+1. Abra `index.html` com duplo clique.
 2. Clique em **Abrir tela do palestrante** e arraste essa janela para o segundo monitor / TV; duplo clique nela entra em tela cheia.
 3. Tudo o que você mexer na mesa aparece na hora na tela do palestrante.
 
@@ -28,6 +36,9 @@ Teleprompter + cronômetro de palco, em HTML/CSS/JS puro. Sem build, sem servido
 `Espaço` play/pause da rolagem · `T` cronômetro · `↑`/`↓` recuar/avançar · `0` topo.
 
 ## Sincronia
-A sincronia usa `BroadcastChannel` + `localStorage`: funciona entre janelas, abas e monitores **do mesmo navegador/dispositivo** (o caso típico: notebook do operador + saída HDMI para o monitor do palestrante).
+- **Com `node server.js`**: a mesa publica o estado em `POST /state` e as telas recebem por **SSE** (`GET /events`) — funciona entre dispositivos diferentes (celular, tablet, TV, outro PC) na mesma rede. `GET /time` alinha os relógios.
+- **Sem servidor** (`file://`): `BroadcastChannel` + `localStorage`, só entre janelas do mesmo navegador.
 
-Para controlar de um **dispositivo diferente** (celular controlando a TV, por exemplo) é preciso um servidor de sinalização (WebSocket). Posso adicionar isso em seguida — é a única parte que exige backend.
+Para usar fora da rede local, basta hospedar esta pasta em qualquer serviço que rode Node (Render, Railway, Fly, VPS) — o mesmo `server.js` serve os arquivos e a sincronia.
+
+Salas: use `?sala=NOME` para rodar vários palcos no mesmo servidor sem se misturarem.

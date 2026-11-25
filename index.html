@@ -24,7 +24,7 @@
         <div class="spacer"></div>
         <button id="pvMirror" class="on" style="padding:6px 11px;font-size:12px">Prévia sem espelho</button>
       </div>
-      <div class="preview" id="pvBox"><iframe id="pv" src="prompter.html"></iframe></div>
+      <div class="preview" id="pvBox"><iframe id="pv"></iframe></div>
       <p class="muted" id="pvNote" style="margin:8px 0 0"></p>
       <div class="row" style="margin-top:14px">
         <button class="accent" id="play" style="flex:1">▶ Iniciar rolagem</button>
@@ -136,7 +136,7 @@
 
     <div class="card">
       <h2>Celular / TV / segundo monitor</h2>
-      <p class="muted" style="margin-top:-6px">Abra este link na tela do palestrante. No mesmo navegador (outra janela, monitor ou projeção) a sincronia é automática.</p>
+      <p class="muted" style="margin-top:-6px">Com o servidor rodando (<code>node server.js</code>), abra este link no celular, na TV ou em outro PC da <b>mesma rede Wi-Fi</b>: tudo sincroniza em tempo real. Sem servidor (abrindo o arquivo direto), a sincronia vale só entre janelas deste navegador.</p>
       <div class="linkbox"><input id="link" readonly><button id="copy">Copiar</button></div>
       <div class="grid2" style="margin-top:12px">
         <div><label>Sala</label><input id="room" value="PALCO-1"></div>
@@ -153,6 +153,7 @@ const qsa = s => [...document.querySelectorAll(s)];
 let room = new URL(location.href).searchParams.get('sala') || 'PALCO-1';
 let sync = new Sync(room);
 let prompterWin = null;
+document.getElementById('pv').src = 'prompter.html?sala=' + encodeURIComponent(room) + '&previa=1';
 
 /* ---------- helpers ---------- */
 const parseDur = v => {
@@ -178,25 +179,25 @@ qs('#file').onchange = e => {
 qs('#play').onclick = () => {
   const s = S();
   s.running ? sync.set({ running: false, offset: Calc.scrollOffset(s) })
-            : sync.set({ running: true, startedAt: Date.now() });
+            : sync.set({ running: true, startedAt: NOW() });
 };
-qs('#restart').onclick = () => sync.set({ offset: 0, startedAt: Date.now() });
+qs('#restart').onclick = () => sync.set({ offset: 0, startedAt: NOW() });
 const nudge = secs => {
   const s = S();
-  sync.set({ offset: Math.max(0, Calc.scrollOffset(s) + secs * s.speed), startedAt: Date.now() });
+  sync.set({ offset: Math.max(0, Calc.scrollOffset(s) + secs * s.speed), startedAt: NOW() });
 };
 qs('#back10').onclick = () => nudge(-10);
 qs('#fwd10').onclick  = () => nudge(10);
 qs('#speed').oninput = e => {
   const s = S(), v = +e.target.value;
-  sync.set({ speed: v, offset: Calc.scrollOffset(s), startedAt: Date.now() });
+  sync.set({ speed: v, offset: Calc.scrollOffset(s), startedAt: NOW() });
 };
 
 /* ---------- cronômetro ---------- */
 qs('#tPlay').onclick = () => {
   const s = S();
   s.tRunning ? sync.set({ tRunning: false, tElapsed: Calc.elapsed(s) })
-             : sync.set({ tRunning: true, tStartedAt: Date.now() });
+             : sync.set({ tRunning: true, tStartedAt: NOW() });
 };
 qs('#tReset').onclick = () => sync.set({ tRunning: false, tElapsed: 0, tStartedAt: 0 });
 qs('#tPlus').onclick  = () => sync.set({ durationSec: S().durationSec + 60 });
@@ -227,7 +228,16 @@ qsa('.chips .q').forEach(b => b.onclick = () => {
 });
 
 /* ---------- janela do palestrante / sala ---------- */
-const promptUrl = () => new URL('prompter.html?sala=' + encodeURIComponent(room), location.href).href;
+let lanHost = null;   // ip da rede local, informado pelo servidor
+fetch('/ips').then(r => r.json()).then(d => {
+  if (d.ips && d.ips.length) { lanHost = d.ips[0] + ':' + d.port; render(S()); }
+}).catch(() => {});
+const promptUrl = () => {
+  const u = new URL('prompter.html?sala=' + encodeURIComponent(room), location.href);
+  // se a mesa foi aberta em localhost, o celular precisa do IP da rede
+  if (lanHost && /^(localhost|127\.|\[::1\])/.test(u.hostname)) u.host = lanHost;
+  return u.href;
+};
 qs('#openPrompter').onclick = () => {
   prompterWin = window.open(promptUrl(), 'prompter_' + room, 'width=1280,height=720');
 };
@@ -294,8 +304,13 @@ sync.onChange(render);
 setInterval(() => {
   qs('#clock').textContent = Calc.clock(S());
   const open = prompterWin && !prompterWin.closed;
-  qs('#dot').classList.toggle('off', !open);
-  qs('#connTxt').textContent = open ? 'tela do palestrante aberta' : 'tela do palestrante fechada';
+  const net = sync.online;
+  qs('#dot').classList.toggle('off', !(net || open));
+  qs('#connTxt').textContent = net
+    ? 'servidor conectado — celular/TV sincronizam'
+    : (location.protocol === 'file:'
+        ? 'modo local (sem servidor): só janelas deste navegador'
+        : 'reconectando ao servidor...');
 }, 200);
 
 /* atalhos da mesa */

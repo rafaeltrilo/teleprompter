@@ -1,0 +1,7 @@
+{
+  "name": "teleprompter-pro",
+  "version": "1.0.0",
+  "description": "Teleprompter com mesa de controle, cronômetro e sincronia entre dispositivos",
+  "scripts": { "start": "node server.js" },
+  "license": "MIT"
+}

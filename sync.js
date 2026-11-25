@@ -38,6 +38,27 @@ function roomFromUrl() {
   return (u.searchParams.get('sala') || 'PALCO-1').toUpperCase();
 }
 
+/* Relógio compartilhado: o celular e o PC podem ter horas diferentes.
+   Medimos a diferença contra o relógio do servidor e usamos NOW() em tudo. */
+let CLOCK_OFFSET = 0;
+function NOW() { return Date.now() + CLOCK_OFFSET; }
+async function syncClock() {
+  if (location.protocol === 'file:') return;
+  let best = Infinity;
+  for (let i = 0; i < 4; i++) {
+    try {
+      const t0 = Date.now();
+      const r = await fetch('/time', { cache: 'no-store' });
+      const t1 = Date.now();
+      const { t } = await r.json();
+      const rtt = t1 - t0;
+      if (rtt < best) { best = rtt; CLOCK_OFFSET = t + rtt / 2 - t1; }
+    } catch { return; }
+  }
+}
+syncClock();
+setInterval(syncClock, 60000);
+
 class Sync {
   constructor(room) {
     this.room = room || roomFromUrl();
@@ -45,10 +66,32 @@ class Sync {
     this.bc = ('BroadcastChannel' in window) ? new BroadcastChannel(this.key) : null;
     this.listeners = [];
     this.state = this.load();
+    this.online = false;
     if (this.bc) this.bc.onmessage = (e) => this.apply(e.data, false);
     addEventListener('storage', (e) => {
       if (e.key === this.key && e.newValue) this.apply(JSON.parse(e.newValue), false);
     });
+    this.connect();   // sincronia entre DISPOSITIVOS (celular, TV, outro PC)
+  }
+
+  /* ---- transporte em rede (SSE), ativo quando servido por http(s) ---- */
+  connect() {
+    if (location.protocol === 'file:' || typeof EventSource === 'undefined') return;
+    const q = '?sala=' + encodeURIComponent(this.room);
+    const es = new EventSource('/events' + q);
+    this.es = es;
+    es.onopen = () => { this.online = true; this.listeners.forEach(fn => fn(this.state)); };
+    es.onerror = () => { this.online = false; };       // o EventSource reconecta sozinho
+    es.onmessage = (e) => {
+      try { const d = JSON.parse(e.data); if (d && d.rev) this.apply(d, false); } catch {}
+    };
+  }
+  publish() {
+    if (location.protocol === 'file:') return;
+    fetch('/state?sala=' + encodeURIComponent(this.room), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(this.state), keepalive: true
+    }).catch(() => {});
   }
   load() {
     try {
@@ -62,11 +105,12 @@ class Sync {
     if (broadcast) {
       try { localStorage.setItem(this.key, JSON.stringify(this.state)); } catch {}
       if (this.bc) this.bc.postMessage(this.state);
+      this.publish();
     }
     this.listeners.forEach(fn => fn(this.state));
   }
   set(patch) {
-    this.apply(Object.assign({}, this.state, patch, { rev: Date.now() }), true);
+    this.apply(Object.assign({}, this.state, patch, { rev: NOW() }), true);
   }
   onChange(fn) { this.listeners.push(fn); fn(this.state); }
 }
@@ -75,11 +119,11 @@ class Sync {
 const Calc = {
   scrollOffset(s) {
     if (!s.running) return s.offset;
-    return s.offset + (Date.now() - s.startedAt) / 1000 * s.speed;
+    return s.offset + (NOW() - s.startedAt) / 1000 * s.speed;
   },
   elapsed(s) {
     if (!s.tRunning) return s.tElapsed;
-    return s.tElapsed + (Date.now() - s.tStartedAt) / 1000;
+    return s.tElapsed + (NOW() - s.tStartedAt) / 1000;
   },
   remaining(s) { return s.durationSec - Calc.elapsed(s); },
   clock(s) {
